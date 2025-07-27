@@ -1,35 +1,21 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>KaraokeOnDemand</title>
-    <style>
-        body { font-family: Arial; background: linear-gradient(to right, #74ebd5, #ACB6E5); padding: 40px; }
-        .container { max-width: 720px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 15px rgba(0,0,0,0.2); }
-        h1 { text-align: center; }
-        input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; }
-        .flash { background-color: #ffdddd; padding: 10px; border-left: 5px solid red; margin-bottom: 15px; }
-    </style>
-</head>
-<body>
-<div class="container">
-    <h1>🎤 Vocal Remover & KaraokeOnDemand</h1>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for msg in messages %}
-          <div class="flash">{{ msg }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-    <form method="POST" action="/upload" enctype="multipart/form-data">
-        <label>Paste YouTube Link</label>
-        <input type="text" name="youtube_url" placeholder="https://youtube.com/..." />
-        <label>Or Upload Audio File</label>
-        <input type="file" name="audio_file" />
-        <button type="submit">Upload & Process</button>
-    </form>
-    {% if free_used %}
-    <p style="color: red;"><strong>You have used your free song for this week. Please <a href="/subscribe">subscribe</a> or return next week.</strong></p>
-    {% endif %}
-</div>
+<head><title>KaraokeOnDemand</title></head>
+<body style="font-family:sans-serif; margin: 50px;">
+<h2>🎤 KaraokeOnDemand</h2>
+{% with messages = get_flashed_messages() %}
+  {% for msg in messages %}
+    <p style="color:red;">{{ msg }}</p>
+  {% endfor %}
+{% endwith %}
+<form method="POST" action="/upload" enctype="multipart/form-data">
+    <p><strong>YouTube Link (admin only):</strong></p>
+    <input type="text" name="youtube_url" style="width:400px" placeholder="https://youtube.com/..." /><br><br>
+    <p><strong>Or Upload MP3 File:</strong></p>
+    <input type="file" name="audio_file" /><br><br>
+    <button type="submit">Upload & Process</button>
+</form>
+<p><a href="/setadmin">🔐 Enable Admin Mode</a></p>
+<p><a href="/subscribe">💳 Subscribe</a></p>
 </body>
 </html>

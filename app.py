@@ -3,31 +3,50 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 import uuid
+import subprocess
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-def can_upload():
-    return True  # Disable limit for testing
+def is_admin():
+    return session.get('is_admin', False)
 
 @app.route('/')
 def index():
-    return render_template('index.html', free_used=False)
+    return render_template('index.html')
 
 @app.route('/setadmin')
 def setadmin():
     session['is_admin'] = True
-    flash("Admin mode enabled.")
+    flash("Admin mode enabled. YouTube link enabled.")
     return redirect(url_for('index'))
 
 @app.route('/upload', methods=['POST'])
 def upload():
     yt_url = request.form.get('youtube_url')
     if yt_url:
-        flash("⚠️ YouTube download temporarily disabled due to site restrictions.")
-        return redirect(url_for('index'))
+        if not is_admin():
+            flash("YouTube downloads are only available for admin or paid users.")
+            return redirect(url_for('index'))
+        filename = f"{uuid.uuid4()}.m4a"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        try:
+            result = subprocess.run([
+                'yt-dlp',
+                '--cookies', 'cookies.txt',
+                '-f', 'bestaudio[ext=m4a]',
+                '-o', filepath,
+                yt_url
+            ], capture_output=True, text=True)
+            if result.returncode != 0:
+                flash(f"YouTube download failed: {result.stderr}")
+                return redirect(url_for('index'))
+            return send_file(filepath, as_attachment=True)
+        except Exception as e:
+            flash(f"Error processing YouTube: {str(e)}")
+            return redirect(url_for('index'))
 
     if 'audio_file' in request.files:
         file = request.files['audio_file']
@@ -37,7 +56,7 @@ def upload():
             file.save(filepath)
             return send_file(filepath, as_attachment=True)
 
-    flash("No file provided.")
+    flash("No file or link provided.")
     return redirect(url_for('index'))
 
 @app.route('/subscribe')
