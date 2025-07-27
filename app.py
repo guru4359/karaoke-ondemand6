@@ -1,0 +1,48 @@
+from flask import Flask, render_template, request, send_file, session, redirect, url_for, flash
+from werkzeug.utils import secure_filename
+import os
+import uuid
+import subprocess
+
+app = Flask(__name__)
+app.secret_key = 'supersecretkey'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+@app.route('/')
+def index():
+    return render_template('index.html', free_used=session.get('free_used', False))
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if not session.get('free_used'):
+        session['free_used'] = True
+    else:
+        flash("Free song limit reached. Please subscribe or pay.")
+        return redirect(url_for('index'))
+
+    yt_url = request.form.get('youtube_url')
+    if yt_url:
+        filename = f"{uuid.uuid4()}.mp3"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        try:
+            subprocess.run(['yt-dlp', '-x', '--audio-format', 'mp3', '-o', filepath, yt_url], check=True)
+            return send_file(filepath, as_attachment=True)
+        except Exception as e:
+            flash(f"Failed to process YouTube link: {str(e)}")
+            return redirect(url_for('index'))
+
+    if 'audio_file' in request.files:
+        file = request.files['audio_file']
+        if file.filename != '':
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{uuid.uuid4()}_{filename}")
+            file.save(filepath)
+            return send_file(filepath, as_attachment=True)
+
+    flash("No file or link provided.")
+    return redirect(url_for('index'))
+
+@app.route('/subscribe')
+def subscribe():
+    return render_template('subscribe.html')
